@@ -63,7 +63,7 @@ def is_space_count_multiple_four(line):
 
 
 def is_cap_word(word):
-    if words[1].istitle() or words[1].find('_') != -1:
+    if word.istitle() or word.find('_') != -1:
         return True
 
 
