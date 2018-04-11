@@ -1,5 +1,5 @@
 def main():
-    file_name = input()
+    file_name = 'input.txt'
     errors = []
     line_number = 1
     previous_line = None
@@ -10,7 +10,7 @@ def main():
             if is_start_with_tab(line):
                 errors.append(
                     Error((1, line_number), 'Use spaces instead of tabs'))
-            if not is_space_count_multiple_four(line):
+            if is_space_count_multiple_four(line):
                     errors.append(
                         Error((1, line_number),
                               'Indentation is not a multiple of four'))
@@ -42,7 +42,7 @@ def main():
         errors.append(Error((len(last_line), line_number),
                             'No new line in the end of file'))
     for error in errors:
-        print(error)
+        error.write()
 
 
 def is_start_with_tab(line):
@@ -51,15 +51,17 @@ def is_start_with_tab(line):
 
 
 def is_space_count_multiple_four(line):
+    space_count = 0
     if line[0] == ' ':
-        space_count = 1
+        space_count += 1
         for symbol in line:
             if symbol == ' ':
                 space_count += 1
             else:
                 break
-        if space_count % 4 != 0:
+        if space_count % 4 == 0:
             return True
+    return False
 
 
 def is_cap_word(word):
@@ -75,5 +77,13 @@ def get_file_content(file_name):
 
 
 class Error():
-    def __init__(self, coordinte, description):
-        pass
+    def __init__(self, coordintes, description):
+        self.coordinates = coordintes
+        self.description = description
+
+    def write(self):
+        print(str(self.coordinates) + ':' + self.description)
+
+
+if __name__ == '__main__':
+    main()
