@@ -1,3 +1,11 @@
+bin_operators = ('=', '+=', '-=', '*=', '/=',
+                 '==', '<', '>', '<=', '>=',
+                 'in', 'not in', 'is', 'is not',
+                 'and', 'or', 'not')
+assignment_operators = ('=', '+=', '-=', '*=', '/=')
+punctuation_marks = (',', ';', ':')
+bool_types = ('True', 'False')
+
 def main():
     file_name = 'input.txt'
     errors = []
@@ -25,6 +33,14 @@ def main():
                     errors.append(
                         Error((str.find(line, words[0]), line_number),
                               'Wrong name of function'))
+                '''Не используйте пробелы вокруг знака =,
+                 если он используется для обозначения именованного аргумента
+                  или значения параметров по умолчанию.'''
+                for i in range(line_length):
+                    if line[i] == '=':
+                        if line[i-1] == ' ' or line[i+1] == ' ':
+                            errors.append(Error((i, line_number),
+                                                'Unexpected spaces around keyword / parameter equals'))
             elif words[0] == 'import':
                 if words[1].isupper():
                     errors.append(
@@ -32,6 +48,89 @@ def main():
                               'Wrong name of module'))
                 if words[1].find(',') != -1:
                     errors.append('Every import should be on a separate line')
+            for word in words:
+                '''Избегайте пробелов внутри скобок'''
+                if word[-1] == '(':
+                    errors.append(Error((1, line_number),
+                                        'whitespace after ('))
+                elif word[-1] == '[':
+                    errors.append(Error((1, line_number),
+                                        'whitespace after ['))
+                elif word[-1] == '{':
+                    errors.append(Error((1, line_number),
+                                        'whitespace after {'))
+                if word[0] == '(':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before ('))
+                elif word[0] == '[':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before ['))
+                elif word[0] == '{':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before {'))
+                if word[0] == ')':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before )'))
+                elif word[0] == ']':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before ]'))
+                elif word[0] == '}':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before }'))
+
+                '''Избегайте пробелов перед запятой, двоеточием и точкой с запятой'''
+                if word[0] == ',':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before ,'))
+                elif word[0] == ':':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before :'))
+                elif word[0] == ';':
+                    errors.append(Error((1, line_number),
+                                        'whitespace before ;'))
+            '''Не используйте пробелы вокруг знака =, если он используется для обозначения именованного аргумента или значения параметров по умолчанию.'''
+            if words[0] != 'def':
+                for i in range(line_length):
+                    if line[i] == '=':
+                        if line[i-1] == ' ' or line[i+1] == ' ':
+                            errors.append(Error((i, line_number),
+                                                'unexpected spaces around keyword / parameter equals'))
+            else:
+                for operator in bin_operators:
+                    i = line.find(operator)
+                    if i != -1:
+                        if line[i-1] != ' ' or line[i+1] != ' ':
+                            errors.append(Error((i, line_number),
+                                                'missing whitespace around operator'))
+                        if line[i-2] != ' ' or line[i+2] == ' ':
+                            errors.append(Error((i, line_number),
+                                                'multiple spaces around operator'))
+            '''Не используйте составные инструкции'''
+            for mark in punctuation_marks:
+                i = line.find(mark)
+                if mark == ',':
+                    i = -1
+                if i != -1:
+                    if line[i+1] != '\n':
+                        errors.append(Error((i, line_number),
+                                            'multiple statements on one line'))
+            # Коментарии
+            i = line.find('#')
+            if i != -1:
+                if line[i+1] != ' ' or line[i+2] == ' ':
+                    errors.append(Error((i, line_number),
+                                        'inline comment should start with "# "'))
+            # Не сравнивайте логические типы через ==
+            for boolean in bool_types:
+                line_without_spaces = line.replace(' ', '')
+                i = line_without_spaces.find(boolean)
+                operators = ('==', '!=', 'is', 'isnot')
+                if i != -1:
+                    for operator in operators:
+                        if line_without_spaces[i-2:i] == operator or\
+                           line_without_spaces[i-5:i] == operator:
+                            errors.append(Error((i,line_number),
+                                                'Do not compare logical types through operators "==", "!=", "is", "is not"'))
             if line_length > 79:
                 errors.append(Error((79, line_number),
                                     'Symbols in line over than 79'))
