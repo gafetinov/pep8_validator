@@ -5,6 +5,11 @@ bin_operators = ('=', '+=', '-=', '*=', '/=',
 assignment_operators = ('=', '+=', '-=', '*=', '/=')
 punctuation_marks = (',', ';', ':')
 bool_types = ('True', 'False')
+opened_brackets = ('(', '[', '{')
+closed_brackets = (')', ']', '}')
+brackets = opened_brackets+closed_brackets
+start_words = ('def', 'class', 'if', 'while', 'for')
+
 
 def main():
     file_name = 'input.txt'
@@ -33,9 +38,9 @@ def main():
                     errors.append(
                         Error((str.find(line, words[0]), line_number),
                               'Wrong name of function'))
-                '''Не используйте пробелы вокруг знака =,
-                 если он используется для обозначения именованного аргумента
-                  или значения параметров по умолчанию.'''
+                # Не используйте пробелы вокруг знака =,
+                # если он используется для обозначения именованного аргумента
+                # или значения параметров по умолчанию.'''
                 for i in range(line_length):
                     if line[i] == '=':
                         if line[i-1] == ' ' or line[i+1] == ' ':
@@ -47,49 +52,23 @@ def main():
                         Error((str.find(line, words[0]), line_number),
                               'Wrong name of module'))
                 if words[1].find(',') != -1:
-                    errors.append('Every import should be on a separate line')
+                    errors.append(Error((1, line_number),
+                                        'Every import should be on a separate line'))
+            # Избегайте лишних пробелов вокруг скобок и знаков препинания
+            previous_word = ''
             for word in words:
-                '''Избегайте пробелов внутри скобок'''
-                if word[-1] == '(':
+                if word[-1] in opened_brackets:
                     errors.append(Error((1, line_number),
-                                        'whitespace after ('))
-                elif word[-1] == '[':
+                                        'whitespace after ' + word[-1]))
+                if word[0] in brackets+punctuation_marks and\
+                        previous_word[-1] != ',':
                     errors.append(Error((1, line_number),
-                                        'whitespace after ['))
-                elif word[-1] == '{':
-                    errors.append(Error((1, line_number),
-                                        'whitespace after {'))
-                if word[0] == '(':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before ('))
-                elif word[0] == '[':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before ['))
-                elif word[0] == '{':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before {'))
-                if word[0] == ')':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before )'))
-                elif word[0] == ']':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before ]'))
-                elif word[0] == '}':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before }'))
-
-                '''Избегайте пробелов перед запятой, двоеточием и точкой с запятой'''
-                if word[0] == ',':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before ,'))
-                elif word[0] == ':':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before :'))
-                elif word[0] == ';':
-                    errors.append(Error((1, line_number),
-                                        'whitespace before ;'))
-            '''Не используйте пробелы вокруг знака =, если он используется для обозначения именованного аргумента или значения параметров по умолчанию.'''
-            if words[0] != 'def':
+                                        'whitespace before ' + word[0]))
+                previous_word = word
+            # Не используйте пробелы вокруг знака =,
+            # если он используется для обозначения именованного аргумента
+            # или значения параметров по умолчанию.'''
+            if words[0] == 'def':
                 for i in range(line_length):
                     if line[i] == '=':
                         if line[i-1] == ' ' or line[i+1] == ' ':
@@ -99,21 +78,24 @@ def main():
                 for operator in bin_operators:
                     i = line.find(operator)
                     if i != -1:
-                        if line[i-1] != ' ' or line[i+1] != ' ':
+                        if (line[i-1] != ' ' or line[i+1] != ' ') and\
+                                not line[i-1].isalpha() and\
+                                not line[i+1].isalpha():
                             errors.append(Error((i, line_number),
                                                 'missing whitespace around operator'))
-                        if line[i-2] != ' ' or line[i+2] == ' ':
+                        if line[i-2] == ' ' or line[i+2] == ' ':
                             errors.append(Error((i, line_number),
                                                 'multiple spaces around operator'))
-            '''Не используйте составные инструкции'''
+            # Не используйте составные инструкции
             for mark in punctuation_marks:
                 i = line.find(mark)
                 if mark == ',':
                     i = -1
                 if i != -1:
-                    if line[i+1] != '\n':
-                        errors.append(Error((i, line_number),
-                                            'multiple statements on one line'))
+                    if words[0] in start_words:
+                        if line[i+1] != '\n':
+                            errors.append(Error((i, line_number),
+                                                'multiple statements on one line'))
             # Коментарии
             i = line.find('#')
             if i != -1:
