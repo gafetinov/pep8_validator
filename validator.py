@@ -1,26 +1,41 @@
-bin_operators = ('==', '=', '+=', '-=', '*=', '/=',
+import sys
+
+BIN_IPERATORS = ('==', '=', '+=', '-=', '*=', '/=',
                  '<=', '>=', '<', '>'
                  'not in', 'in', 'is not', 'is',
                  'and', 'or', 'not')
-assignment_operators = ('=', '+=', '-=', '*=', '/=')
-punctuation_marks = (',', ';', ':')
-bool_types = ('True', 'False')
-opened_brackets = ('(', '[', '{')
-closed_brackets = (')', ']', '}')
-brackets = opened_brackets+closed_brackets
-start_words = ('def', 'class', 'if', 'while', 'for')
-file_name = 'input.txt'
+ASSIGNMENT_OPERATORS = ('=', '+=', '-=', '*=', '/=')
+PUNCTUATION_MARKS = (',', ';', ':')
+BOOL_TYPES = ('True', 'False')
+OPENED_BRACKETS = ('(', '[', '{')
+CLOSED_BRACKETS = (')', ']', '}')
+BRACKETS = OPENED_BRACKETS + CLOSED_BRACKETS
+START_WORDS = ('def', 'class', 'if', 'while', 'for')
+FILE_NAME = 'input.txt'
 
 
 def main():
-    f = open(file_name)
-    content = []
-    for line in f:
-        content.append(line)
-    f.close()
-    errors = search_errors(content)
-    for error in errors:
-        error.write()
+    arguments = sys.argv
+    if len(arguments) > 1 and\
+            (arguments[1] == '--help' or arguments[1] == '-h'):
+        print('This program check your code according to pep8\n'
+              'For execute program paste your code to input.txt\n'
+              'Than execute program with command run without arguments\n'
+              '\n'
+              'Mandatory arguments to long options are mandatory for short options too:\n'
+              '--help, -h    display this help and exit')
+        sys.exit()
+    else:
+        f = open(FILE_NAME)
+        content = []
+        for line in f:
+            content.append(line)
+        f.close()
+        errors = search_errors(content)
+        for error in errors:
+            error.write()
+        if errors:
+            sys.exit(1)
 
 
 def search_errors(code):
@@ -39,12 +54,12 @@ def search_errors(code):
         if words[0] == 'class':
             if not is_cap_word(words[1]):
                 errors.append(
-                    Error((str.find(line, words[0]), line_number),
+                    Error((line.find(words[0]), line_number),
                           'Wrong name of class'))
         elif words[0] == 'def':
             if not words[1].islower():
                 errors.append(
-                    Error((str.find(line, words[0]), line_number),
+                    Error((line.find(words[0]), line_number),
                           'Wrong name of function'))
             # Не используйте пробелы вокруг знака =,
             # если он используется для обозначения именованного аргумента
@@ -57,22 +72,27 @@ def search_errors(code):
         elif words[0] == 'import':
             if words[1].isupper():
                 errors.append(
-                    Error((str.find(line, words[0]), line_number),
+                    Error((line.find(words[0]), line_number),
                           'Wrong name of module'))
             if words[1].find(',') != -1:
                 errors.append(Error((1, line_number),
                                     'Every import should be on a separate line'))
         # Избегайте лишних пробелов вокруг скобок и знаков препинания
         previous_word = ''
-        for word in words:
-            if word[-1] in opened_brackets:
+        next_word = ''
+        for i in range(len(words)):
+            if i+1 < len(words):
+                next_word = words[i+1]
+            if words[i][-1] in OPENED_BRACKETS and\
+                    i+1 < len(words) and next_word not in BIN_IPERATORS:
                 errors.append(Error((1, line_number),
-                                    'whitespace after ' + word[-1]))
-            if word[0] in brackets+punctuation_marks and\
-                    previous_word[-1] != ',':
+                                    'whitespace after ' + words[i][-1]))
+            if words[i][0] in BRACKETS+PUNCTUATION_MARKS and\
+                    len(previous_word) > 0 and previous_word[-1] != ',' and\
+                    previous_word not in BIN_IPERATORS:
                 errors.append(Error((1, line_number),
-                                    'whitespace before ' + word[0]))
-            previous_word = word
+                                    'whitespace before ' + words[i][0]))
+            previous_word = words[i]
         # Не используйте пробелы вокруг знака =,
         # если он используется для обозначения именованного аргумента
         # или значения параметров по умолчанию.'''
@@ -85,7 +105,7 @@ def search_errors(code):
 
         #  В стадии разработки
         #  else:
-        #      for operator in bin_operators:
+        #      for operator in BIN_IPERATORS:
         #          i = line.find(operator)
         #          if i != -1:
         #              if (line[i-1] != ' ' or line[i+1] != ' ') and\
@@ -98,7 +118,7 @@ def search_errors(code):
         #                                      'multiple spaces around operator'))
 
         # Не используйте составные инструкции
-        for mark in punctuation_marks:
+        for mark in PUNCTUATION_MARKS:
             i = line.find(mark)
             if mark == ',':
                 i = -1
@@ -107,13 +127,14 @@ def search_errors(code):
                         errors.append(Error((i, line_number),
                                             'multiple statements on one line'))
         # Коментарии
+        line = line.lstrip()
         i = line.find('#')
         if i != -1:
-            if line[i+1] != ' ' or line[i+2] == ' ':
+            if line[i+1] != ' ':
                 errors.append(Error((i, line_number),
                                     'inline comment should start with "# "'))
         # Не сравнивайте логические типы через ==
-        for boolean in bool_types:
+        for boolean in BOOL_TYPES:
             line_without_spaces = line.replace(' ', '')
             i = line_without_spaces.find(boolean)
             operators = ('==', '!=', 'is', 'isnot')
@@ -131,36 +152,26 @@ def search_errors(code):
 
 
 def is_start_with_tab(line):
-    if line[0] == '\t':
-        return True
+    return line[0] == '\t'
 
 
 def is_space_count_multiple_four(line):
-    space_count = 0
-    if line[0] == ' ':
-        for symbol in line:
-            if symbol == ' ':
-                space_count += 1
-            else:
-                break
-    if space_count % 4 == 0:
-        return True
-    return False
+    for (i, ch) in enumerate(line):
+        if ch != ' ':
+            return i % 4 == 0
 
 
 def is_cap_word(word):
-    if word[0].istitle() and word.find('_') == -1:
-        return True
-    return False
+    return word[0].istitle() and word.find('_') == -1
 
 
-class Error():
+class Error:
     def __init__(self, coordintes, description):
         self.coordinates = coordintes
         self.description = description
 
     def write(self):
-        print(str(self.coordinates) + ':' + self.description)
+        print('{0}:{1}'.format(self.coordinates, self.description))
 
     def get_description(self):
         return self.description

@@ -73,10 +73,10 @@ class TestSearch():
     def test_comments(self):
         code = self.get_list('comments')
         answer = validator.search_errors(code)
-        for i in range(2):
+        for i in range(1):
             assert answer[i].\
                 get_description() == 'inline comment should start with "# "'
-        assert len(answer) == 2
+        assert len(answer) == 1
 
     def test_logical_conditions(self):
         code = self.get_list('logical_conditions')
