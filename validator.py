@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 BIN_IPERATORS = ('==', '=', '+=', '-=', '*=', '/=',
                  '<=', '>=', '<', '>'
@@ -15,139 +16,132 @@ FILE_NAME = 'input.txt'
 
 
 def main():
-    arguments = sys.argv
-    if len(arguments) > 1 and\
-            (arguments[1] == '--help' or arguments[1] == '-h'):
-        print('This program check your code according to pep8\n'
-              'For execute program paste your code to input.txt\n'
-              'Than execute program with command run without arguments\n'
-              '\n'
-              'Mandatory arguments to long options are mandatory for short options too:\n'
-              '--help, -h    display this help and exit')
-        sys.exit()
+    parser = argparse.ArgumentParser(description='Check code for PEP8.')
+    parser.add_argument('--files', nargs='*',
+                        help='Check transferred files to PEP8')
+    parser.add_argument('string', nargs='*')
+    arguments = parser.parse_args()
+    errors = []
+    if arguments.files:
+        for file in arguments.files:
+            with open(file) as file:
+                for line in file:
+                    errors.append(search_errors(line))
     else:
-        f = open(FILE_NAME)
-        content = []
-        for line in f:
-            content.append(line)
-        f.close()
-        errors = search_errors(content)
-        for error in errors:
-            error.write()
-        if errors:
-            sys.exit(1)
+        errors + search_errors(' '.join(arguments.string))
+    for error in errors:
+        error.write()
 
 
-def search_errors(code):
+def search_errors(line):
     errors = []
     line_number = 1
-    for line in code:
-        if line.isspace():
-            previous_line = ''
-            continue
-        line_length = len(line)
-        if not is_space_count_multiple_four(line):
-                errors.append(
-                    Error((1, line_number),
-                          'Indentation is not a multiple of four'))
-        words = line.split()
-        if words[0] == 'class':
-            if not is_cap_word(words[1]):
-                errors.append(
-                    Error((line.find(words[0]), line_number),
-                          'Wrong name of class'))
-        elif words[0] == 'def':
-            if not words[1].islower():
-                errors.append(
-                    Error((line.find(words[0]), line_number),
-                          'Wrong name of function'))
-            # Не используйте пробелы вокруг знака =,
-            # если он используется для обозначения именованного аргумента
-            # или значения параметров по умолчанию.'''
-            for i in range(line_length):
-                if line[i] == '=':
-                    if line[i-1] == ' ' or line[i+1] == ' ':
-                        errors.append(Error((i, line_number),
-                                            'Unexpected spaces around keyword / parameter equals'))
-        elif words[0] == 'import':
-            if words[1].isupper():
-                errors.append(
-                    Error((line.find(words[0]), line_number),
-                          'Wrong name of module'))
-            if words[1].find(',') != -1:
-                errors.append(Error((1, line_number),
-                                    'Every import should be on a separate line'))
-        # Избегайте лишних пробелов вокруг скобок и знаков препинания
-        previous_word = ''
-        next_word = ''
-        for i in range(len(words)):
-            if i+1 < len(words):
-                next_word = words[i+1]
-            if words[i][-1] in OPENED_BRACKETS and\
-                    i+1 < len(words) and next_word not in BIN_IPERATORS:
-                errors.append(Error((1, line_number),
-                                    'whitespace after ' + words[i][-1]))
-            if words[i][0] in BRACKETS+PUNCTUATION_MARKS and\
-                    len(previous_word) > 0 and previous_word[-1] != ',' and\
-                    previous_word not in BIN_IPERATORS:
-                errors.append(Error((1, line_number),
-                                    'whitespace before ' + words[i][0]))
-            previous_word = words[i]
+
+    if line.isspace():
+        previous_line = ''
+    line_length = len(line)
+    if not is_space_count_multiple_four(line):
+            errors.append(
+                Error((1, line_number),
+                      'Indentation is not a multiple of four'))
+    words = line.split()
+    if words[0] == 'class':
+        if not is_cap_word(words[1]):
+            errors.append(
+                Error((line.find(words[0]), line_number),
+                      'Wrong name of class'))
+    elif words[0] == 'def':
+        if not words[1].islower():
+            errors.append(
+                Error((line.find(words[0]), line_number),
+                      'Wrong name of function'))
         # Не используйте пробелы вокруг знака =,
         # если он используется для обозначения именованного аргумента
         # или значения параметров по умолчанию.'''
-        if words[0] == 'def':
-            for i in range(line_length):
-                if line[i] == '=':
-                    if line[i-1] == ' ' or line[i+1] == ' ':
-                        errors.append(Error((i, line_number),
-                                            'unexpected spaces around keyword / parameter equals'))
+        for i in range(line_length):
+            if line[i] == '=':
+                if line[i-1] == ' ' or line[i+1] == ' ':
+                    errors.append(Error((i, line_number),
+                                        'Unexpected spaces around keyword / parameter equals'))
+    elif words[0] == 'import':
+        if words[1].isupper():
+            errors.append(
+                Error((line.find(words[0]), line_number),
+                      'Wrong name of module'))
+        if words[1].find(',') != -1:
+            errors.append(Error((1, line_number),
+                                'Every import should be on a separate line'))
+    # Избегайте лишних пробелов вокруг скобок и знаков препинания
+    previous_word = ''
+    next_word = ''
+    for i in range(len(words)):
+        if i+1 < len(words):
+            next_word = words[i+1]
+        if words[i][-1] in OPENED_BRACKETS and\
+                i+1 < len(words) and next_word not in BIN_IPERATORS:
+            errors.append(Error((1, line_number),
+                                'whitespace after ' + words[i][-1]))
+        if words[i][0] in BRACKETS+PUNCTUATION_MARKS and\
+                len(previous_word) > 0 and previous_word[-1] != ',' and\
+                previous_word not in BIN_IPERATORS:
+            errors.append(Error((1, line_number),
+                                'whitespace before ' + words[i][0]))
+        previous_word = words[i]
+    # Не используйте пробелы вокруг знака =,
+    # если он используется для обозначения именованного аргумента
+    # или значения параметров по умолчанию.'''
+    if words[0] == 'def':
+        for i in range(line_length):
+            if line[i] == '=':
+                if line[i-1] == ' ' or line[i+1] == ' ':
+                    errors.append(Error((i, line_number),
+                                        'unexpected spaces around keyword / parameter equals'))
 
-        #  В стадии разработки
-        #  else:
-        #      for operator in BIN_IPERATORS:
-        #          i = line.find(operator)
-        #          if i != -1:
-        #              if (line[i-1] != ' ' or line[i+1] != ' ') and\
-        #                      not line[i-1].isalpha() and\
-        #                      not line[i+1].isalpha():
-        #                  errors.append(Error((i, line_number),
-        #                                      'missing whitespace around operator'))
-        #              if line[i-2] == ' ' or line[i+2] == ' ':
-        #                  errors.append(Error((i, line_number),
-        #                                      'multiple spaces around operator'))
+    #  В стадии разработки
+    #  else:
+    #      for operator in BIN_IPERATORS:
+    #          i = line.find(operator)
+    #          if i != -1:
+    #              if (line[i-1] != ' ' or line[i+1] != ' ') and\
+    #                      not line[i-1].isalpha() and\
+    #                      not line[i+1].isalpha():
+    #                  errors.append(Error((i, line_number),
+    #                                      'missing whitespace around operator'))
+    #              if line[i-2] == ' ' or line[i+2] == ' ':
+    #                  errors.append(Error((i, line_number),
+    #                                      'multiple spaces around operator'))
 
-        # Не используйте составные инструкции
-        for mark in PUNCTUATION_MARKS:
-            i = line.find(mark)
-            if mark == ',':
-                i = -1
-            if i != -1:
-                if i+1 < len(line.rstrip()):
-                        errors.append(Error((i, line_number),
-                                            'multiple statements on one line'))
-        # Коментарии
-        line = line.lstrip()
-        i = line.find('#')
+    # Не используйте составные инструкции
+    for mark in PUNCTUATION_MARKS:
+        i = line.find(mark)
+        if mark == ',':
+            i = -1
         if i != -1:
-            if line[i+1] != ' ':
-                errors.append(Error((i, line_number),
-                                    'inline comment should start with "# "'))
-        # Не сравнивайте логические типы через ==
-        for boolean in BOOL_TYPES:
-            line_without_spaces = line.replace(' ', '')
-            i = line_without_spaces.find(boolean)
-            operators = ('==', '!=', 'is', 'isnot')
-            if i != -1:
-                for operator in operators:
-                    if line_without_spaces[i-2:i] == operator or\
-                       line_without_spaces[i-5:i] == operator:
-                        errors.append(Error((i, line_number),
-                                            'Do not compare logical types through operators "==", "!=", "is", "is not"'))
-        if line_length > 79:
-            errors.append(Error((79, line_number),
-                                'Symbols in line over than 79'))
-        line_number += 1
+            if i+1 < len(line.rstrip()):
+                    errors.append(Error((i, line_number),
+                                        'multiple statements on one line'))
+    # Коментарии
+    line = line.lstrip()
+    i = line.find('#')
+    if i != -1:
+        if line[i+1] != ' ':
+            errors.append(Error((i, line_number),
+                                'inline comment should start with "# "'))
+    # Не сравнивайте логические типы через ==
+    for boolean in BOOL_TYPES:
+        line_without_spaces = line.replace(' ', '')
+        i = line_without_spaces.find(boolean)
+        operators = ('==', '!=', 'is', 'isnot')
+        if i != -1:
+            for operator in operators:
+                if line_without_spaces[i-2:i] == operator or\
+                   line_without_spaces[i-5:i] == operator:
+                    errors.append(Error((i, line_number),
+                                        'Do not compare logical types through operators "==", "!=", "is", "is not"'))
+    if line_length > 79:
+        errors.append(Error((79, line_number),
+                            'Symbols in line over than 79'))
+    line_number += 1
     return errors
 
 
