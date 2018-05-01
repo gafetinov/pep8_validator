@@ -1,0 +1,22 @@
+E0101-Indentation is not a multiple of four
+E0201-Wrong name of class
+E0202-Wrong name of function
+E0203-Wrong name of import
+E0301-Every import should be on a separate line
+E0302-Multiple statements on one line
+E0401-Inline comment should start with "# "
+E0501-Do not compare logical types through operators "==", "!=", "is", "is not"
+E0601-Symbols in line over than 79
+E0701-Whitespace after "("
+E0702-Whitespace before "("
+E0703-Whitespace before ")"
+E0704-Whitespace after "["
+E0705-Whitespace before "["
+E0706-Whitespace before "]"
+E0707-Whitespace after "{"
+E0708-Whitespace before "{"
+E0709-Whitespace before "}"
+E0710-Whitespace before ","
+E0711-Whitespace before ":"
+E0712-Whitespace before ";"
+E0713-Unexpected spaces around keyword / parameter equals
