@@ -13,10 +13,10 @@ OPENED_BRACKETS = ('(', '[', '{')
 CLOSED_BRACKETS = (')', ']', '}')
 BRACKETS = OPENED_BRACKETS + CLOSED_BRACKETS
 START_WORDS = ('def', 'class', 'if', 'while', 'for')
-ERRORS = []
 
 
 def main():
+    errors = []
     parser = argparse.ArgumentParser(description='Check code for PEP8.')
     parser.add_argument('--files', nargs='*',
                         help='Check transferred files to PEP8')
@@ -27,30 +27,31 @@ def main():
             with open(file_name) as file:
                 line_number = 1
                 for line in file:
-                    search_errors(line, file_name, line_number)
+                    errors += search_errors(line, file_name, line_number)
                     line_number += 1
     else:
-        search_errors(' '.join(arguments.string), 'string', 1)
-    for error in ERRORS:
+        errors = search_errors(' '.join(arguments.string), 'string', 1)
+    for error in errors:
         error.write()
 
 
-def search_errors(line, file_name, line_number):
+def search_errors(line, file_name='string', line_number=1):
+    errors = []
     if not is_space_count_multiple_four(line):
-            ERRORS.append(
+            errors.append(
                 Error(file_name,
                       (1, line_number),
                       'E0101'))
     words = line.split()
     if words[0] == 'class':
         if not is_cap_word(words[1]):
-            ERRORS.append(
+            errors.append(
                 Error(file_name,
                       (line.find(words[1])+1, line_number),
                       'E0201'))
     elif words[0] == 'def':
         if not words[1].islower():
-            ERRORS.append(
+            errors.append(
                 Error(file_name,
                       (line.find(words[1])+1, line_number),
                       'E0202'))
@@ -60,16 +61,16 @@ def search_errors(line, file_name, line_number):
         for i in range(len(line)):
             if line[i] == '=':
                 if line[i-1] == ' ' or line[i+1] == ' ':
-                    ERRORS.append(Error(file_name, (i, line_number),
+                    errors.append(Error(file_name, (i, line_number),
                                         ''))
     elif words[0] == 'import':
         if words[1].isupper():
-            ERRORS.append(
+            errors.append(
                 Error(file_name,
                       (line.find(words[1]+1), line_number),
                       'E0203'))
         if words[1].find(',') != -1:
-            ERRORS.append(Error(file_name,
+            errors.append(Error(file_name,
                                 (line.find(words[0])+words[1].find(',')+1,
                                  line_number),
                                 'E0301'))
@@ -86,7 +87,7 @@ def search_errors(line, file_name, line_number):
                 '[': 'E0704',
                 '{': 'E0707',
             }
-            ERRORS.append(Error(file_name,
+            errors.append(Error(file_name,
                                 (i+1, line_number),
                                 init_error[words[i][-1]]))
         if words[i][0] in BRACKETS+PUNCTUATION_MARKS and\
@@ -103,7 +104,7 @@ def search_errors(line, file_name, line_number):
                 ':': 'E0711',
                 ';': 'E0712'
             }
-            ERRORS.append(Error(file_name,
+            errors.append(Error(file_name,
                                 (i+1, line_number),
                                 init_error[words[i][0]]))
         previous_word = words[i]
@@ -116,10 +117,10 @@ def search_errors(line, file_name, line_number):
     #              if (line[i-1] != ' ' or line[i+1] != ' ') and\
     #                      not line[i-1].isalpha() and\
     #                      not line[i+1].isalpha():
-    #                  ERRORS.append(Error(file_name, (i, line_number),
+    #                  errors.append(Error(file_name, (i, line_number),
     #                                      'missing whitespace around operator'))
     #              if line[i-2] == ' ' or line[i+2] == ' ':
-    #                  ERRORS.append(Error(file_name, (i, line_number),
+    #                  errors.append(Error(file_name, (i, line_number),
     #                                      'multiple spaces around operator'))
 
     # Не используйте составные инструкции
@@ -129,7 +130,7 @@ def search_errors(line, file_name, line_number):
             i = -1
         if i != -1:
             if i+1 < len(line.rstrip()):
-                    ERRORS.append(Error(file_name,
+                    errors.append(Error(file_name,
                                         (i, line_number),
                                         'E0302'))
     # Коментарии
@@ -137,7 +138,7 @@ def search_errors(line, file_name, line_number):
     i = line.find('#')
     if i != -1:
         if line[i+1] != ' ':
-            ERRORS.append(Error(file_name,
+            errors.append(Error(file_name,
                                 (i, line_number),
                                 'E0401'))
     # Не сравнивайте логические типы через ==
@@ -149,21 +150,14 @@ def search_errors(line, file_name, line_number):
             for operator in operators:
                 if line_without_spaces[i-2:i] == operator or\
                    line_without_spaces[i-5:i] == operator:
-                    ERRORS.append(Error(file_name,
+                    errors.append(Error(file_name,
                                         (i, line_number),
                                         'E0501'))
     if len(line) > 79:
-        ERRORS.append(Error(file_name,
+        errors.append(Error(file_name,
                             (79, line_number),
                             'E0601'))
-
-
-def get_error07(symbol, before=True):
-    if before:
-        if symbol == '(':
-            return 'E702'
-        elif symbol == ')':
-            return
+    return errors
 
 
 def is_start_with_tab(line):

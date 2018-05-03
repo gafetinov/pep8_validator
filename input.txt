@@ -1,1 +1,7 @@
-class asddsd:
+def mixedCase
+def UPPERCASE
+def CapitalizedWords
+def UPPERCASE_WITH_UNDERSCORES
+def Capitalized_Words_With_Underscores
+def lower_case_with_underscores
+def lowercase

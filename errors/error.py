@@ -10,6 +10,9 @@ class Error:
         print('On {0} {1}: {2}'.
               format(self.file_name, self.coordinates, self.description()))
 
+    def get_code(self):
+        return self.err_code
+
     def description(self):
         with open('errors/{}.txt'.format(self.language)) as file:
             for line in file:

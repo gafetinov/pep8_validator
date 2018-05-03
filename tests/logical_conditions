@@ -4,4 +4,3 @@ if condition is True:
 if condition is not True:
 if condition is False:
 if condition is not False
-if greeting:
