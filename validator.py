@@ -30,9 +30,11 @@ def main():
                     errors += search_errors(line, file_name, line_number)
                     line_number += 1
     else:
-        errors = search_errors(' '.join(arguments.string), 'string', 1)
-    for error in errors:
-        error.write()
+        errors = search_errors(' '.join(arguments.string))
+    if errors:
+        for error in errors:
+            error.write()
+        sys.exit(1)
 
 
 def search_errors(line, file_name='string', line_number=1):
@@ -141,6 +143,7 @@ def search_errors(line, file_name='string', line_number=1):
             errors.append(Error(file_name,
                                 (i, line_number),
                                 'E0401'))
+
     # Не сравнивайте логические типы через ==
     for boolean in BOOL_TYPES:
         line_without_spaces = line.replace(' ', '')
@@ -153,15 +156,12 @@ def search_errors(line, file_name='string', line_number=1):
                     errors.append(Error(file_name,
                                         (i, line_number),
                                         'E0501'))
+
     if len(line) > 79:
         errors.append(Error(file_name,
                             (79, line_number),
                             'E0601'))
     return errors
-
-
-def is_start_with_tab(line):
-    return line[0] == '\t'
 
 
 def is_space_count_multiple_four(line):
