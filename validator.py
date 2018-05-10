@@ -57,14 +57,7 @@ def search_errors(line, file_name='string', line_number=1):
                 Error(file_name,
                       (line.find(words[1])+1, line_number),
                       'E0202'))
-        # Не используйте пробелы вокруг знака =,
-        # если он используется для обозначения именованного аргумента
-        # или значения параметров по умолчанию.'''
-        for i in range(len(line)):
-            if line[i] == '=':
-                if line[i-1] == ' ' or line[i+1] == ' ':
-                    errors.append(Error(file_name, (i, line_number),
-                                        ''))
+
     elif words[0] == 'import':
         if words[1].isupper():
             errors.append(
