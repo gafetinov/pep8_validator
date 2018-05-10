@@ -20,3 +20,5 @@ E0710-Whitespace before ","
 E0711-Whitespace before ":"
 E0712-Whitespace before ";"
 E0713-Unexpected spaces around keyword / parameter equals
+E0714-Missing whitespace around operator
+E0715-Multiple spaces around operator

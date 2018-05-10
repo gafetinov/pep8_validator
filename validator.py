@@ -3,9 +3,7 @@ import argparse
 from errors.error import Error
 
 BIN_IPERATORS = ('==', '=', '+=', '-=', '*=', '/=',
-                 '<=', '>=', '<', '>'
-                 'not in', 'in', 'is not', 'is',
-                 'and', 'or', 'not')
+                 '<=', '>=', '<', '>')
 ASSIGNMENT_OPERATORS = ('=', '+=', '-=', '*=', '/=')
 PUNCTUATION_MARKS = (',', ';', ':')
 BOOL_TYPES = ('True', 'False')
@@ -103,6 +101,7 @@ def search_errors(line, file_name='string', line_number=1):
                                 (i+1, line_number),
                                 init_error[words[i][0]]))
         previous_word = words[i]
+
 
     #  В стадии разработки
     #  else:
