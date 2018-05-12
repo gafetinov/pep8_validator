@@ -60,10 +60,10 @@ def search_errors(line, file_name='string', line_number=1):
                       'E0202'))
 
     elif words[0] == 'import':
-        if words[1].isupper():
+        if not words[1].islower():
             errors.append(
                 Error(file_name,
-                      (line.find(words[1]+1), line_number),
+                      (line.find(words[1])+1, line_number),
                       'E0203'))
         if words[1].find(',') != -1:
             errors.append(Error(file_name,
