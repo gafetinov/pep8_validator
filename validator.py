@@ -2,8 +2,11 @@ import sys
 import argparse
 from errors.error import Error
 
-BIN_IPERATORS = ('==', '=', '+=', '-=', '*=', '/=',
-                 '<=', '>=', '<', '>')
+BIN_OPERATORS1 = ('==', '=', '+=', '-=', '*=', '/=',
+                  '<=', '>=', '<', '>')
+BIN_OPERATORS2 = ('not in', 'in', 'is not', 'is',
+                  'and', 'or', 'not')
+BIN_OPERATORS = BIN_OPERATORS1 + BIN_OPERATORS2
 ASSIGNMENT_OPERATORS = ('=', '+=', '-=', '*=', '/=')
 PUNCTUATION_MARKS = (',', ';', ':')
 BOOL_TYPES = ('True', 'False')
@@ -74,7 +77,7 @@ def search_errors(line, file_name='string', line_number=1):
         if i+1 < len(words):
             next_word = words[i+1]
         if words[i][-1] in OPENED_BRACKETS and\
-                i+1 < len(words) and next_word not in BIN_IPERATORS:
+                i+1 < len(words) and next_word not in BIN_OPERATORS:
             init_error = {
                 '(': 'E0701',
                 '[': 'E0704',
@@ -85,7 +88,7 @@ def search_errors(line, file_name='string', line_number=1):
                                 init_error[words[i][-1]]))
         if words[i][0] in BRACKETS+PUNCTUATION_MARKS and\
                 len(previous_word) > 0 and previous_word[-1] != ',' and\
-                previous_word not in BIN_IPERATORS:
+                previous_word not in BIN_OPERATORS:
             init_error = {
                 '(': 'E0702',
                 ')': 'E0703',
@@ -102,31 +105,37 @@ def search_errors(line, file_name='string', line_number=1):
                                 init_error[words[i][0]]))
         previous_word = words[i]
 
-
-    #  В стадии разработки
-    #  else:
-    #      for operator in BIN_OPERATORS:
-    #          i = line.find(operator)
-    #          if i != -1:
-    #              if (line[i-1] != ' ' or line[i+1] != ' ') and\
-    #                      not line[i-1].isalpha() and\
-    #                      not line[i+1].isalpha():
-    #                  errors.append(Error(file_name, (i, line_number),
-    #                                      'missing whitespace around operator'))
-    #              if line[i-2] == ' ' or line[i+2] == ' ':
-    #                  errors.append(Error(file_name, (i, line_number),
-    #                                      'multiple spaces around operator'))
+    # for operator in BIN_OPERATORS1+BIN_OPERATORS2:
+    #     i = line.find(operator)
+    #     if i != -1:
+    #         if line[i-1] != ' ' or line[i+len(operator)] != ' ':
+    #             if operator in BIN_OPERATORS2:
+    #                 if not line[i-1].isalpha() and\
+    #                    not line[i+len(operator)].isalpha():
+    #                     errors.append(Error(file_name, (i, line_number),
+    #                                         'E0714'))
+    #             else:
+    #                 errors.append(Error(file_name, (i, line_number),
+    #                                     'E0714'))
+    #         else:
+    #             if line[i-2] == ' ' and line[i+len(operator)+1] == ' ':
+    #                 errors.append(Error(file_name, (i, line_number),
+    #                                     'E0715'))
 
     # Не используйте составные инструкции
-    for mark in PUNCTUATION_MARKS:
-        i = line.find(mark)
-        if mark == ',':
-            i = -1
-        if i != -1:
-            if i+1 < len(line.rstrip()):
-                    errors.append(Error(file_name,
-                                        (i, line_number),
-                                        'E0302'))
+    i = line.find(' lambda ')
+    if i != -1:
+        errors.append(Error(file_name, (i, line_number), 'E0801'))
+    else:
+        for mark in PUNCTUATION_MARKS:
+            i = line.find(mark)
+            if mark == ',':
+                i = -1
+            if i != -1:
+                if i+1 < len(line.rstrip()):
+                        errors.append(Error(file_name,
+                                            (i, line_number),
+                                            'E0302'))
     # Коментарии
     line = line.lstrip()
     i = line.find('#')
