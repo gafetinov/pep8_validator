@@ -18,7 +18,10 @@ class Error:
             for line in file:
                 if line.find(self.err_code) != -1:
                     dates = line.split('-')
-                    return dates[1]
+                    return dates[1].rstrip()
+
+    def err_code(self):
+        return self.err_code
 
     def change_language(self, language):
         if language in self.languages:

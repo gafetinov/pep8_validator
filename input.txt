@@ -15,3 +15,10 @@ def main():
         errors = search_errors(' '.join(arguments.string), 'string', 1)
     for error in errors:
         error.write()
+
+def as():
+    def sa():
+        def dslksd():
+            pass
+    def ds():
+        pass

@@ -1,6 +1,5 @@
 import sys
 import argparse
-import re
 from errors.error import Error
 
 BIN_OPERATORS1 = ('==', '=', '+=', '-=', '*=', '/=', '<=', '>=', '<', '>')
@@ -62,7 +61,9 @@ def check_error0201(line):
     result = []
     words = line.split()
     if words[0] == 'class':
-        if not is_cap_word(words[1]):
+        if len(words) == 1:
+            result.append((line.find(words[0])+len('class'), 'E0201'))
+        elif not is_cap_word(words[1]):
             result.append((line.find(words[1]), 'E0201'))
     return result
 
@@ -71,6 +72,8 @@ def check_error0202(line):
     result = []
     words = line.split()
     if words[0] == 'def':
+        if len(words) == 1:
+            result.append((line.find(words[0])+len('def'), 'E0202'))
         if not words[1].islower():
             result.append((line.find(words[1]), 'E0202'))
     return result
@@ -268,27 +271,63 @@ def check_error0801(line):
 
 
 class Error09:
-    def __init__(self, lines):
+    def __init__(self, file_name, lines):
         self.nesting = []
+        self.file_name = file_name
         self.lines = lines
-        self.errors = []
+        self.errors = self.check()
 
-    def check_error0901(self):
-        line_number = 0
+    def check(self):
+        err = []
+        indent = 0
+        previous_indent = indent
         for i in range(len(self.lines)):
             line = self.lines[i]
             words = line.split()
-            if words[0] == 'class' and i != 0:
-                if self.lines[i-1]:
-                    return line_number, 0
-                else:
-                    if self.lines[i-2]:
-                        return line_number, 0
-                    else:
-                        if self.lines[i-3]:
-                            pass
+            if words:
+                if words[0] == 'class':
+                    indent = line.find('class')
+                    if i > 2 and indent == previous_indent:
+                        if self.lines[i-1] != '\n' or self.lines[i-2] != '\n':
+                            err.append(Error(self.file_name,
+                                             (i+1, line.find('class')), 'E0902'))
                         else:
-                            return line_number, 0
+                            if self.lines[i-3] == '\n':
+                                err.append(Error(self.file_name,
+                                                 (i+1, line.find('class')),
+                                                 'E0902'))
+                    self.nesting.append('class')
+                elif words[0] == 'def':
+                    indent = line.find('def')
+                    if i > 2:
+                        if indent == 0:
+                            if self.lines[i-1] != '\n' or \
+                                    self.lines[i-2] != '\n':
+                                err.append(Error(self.file_name,
+                                                 (i+1, line.find('def')),
+                                                 'E0903'))
+                            else:
+                                if self.lines[i - 3] == '\n':
+                                    err.append(Error(self.file_name,
+                                                     (i + 1,
+                                                      line.find('def')),
+                                                     'E0903'))
+                        else:
+                            if indent <= previous_indent:
+                                if self.lines[i-1] != '\n':
+                                    err.append(Error(self.file_name,
+                                                     (i+1, line.find('def')),
+                                                     'E0904'))
+                                elif self.lines[i-2] == '\n':
+                                    err.append(Error(self.file_name,
+                                                     (i+1, line.find('def')),
+                                                     'E0904'))
+                    self.nesting.append('def')
+            previous_indent = indent
+        if self.lines[-1] != '\n':
+            err.append(Error(self.file_name,
+                             (len(self.lines), len(self.lines[-1])), 'E0901'))
+        return err
 
 
 def main():
@@ -302,14 +341,14 @@ def main():
         for file_name in arguments.files:
             errors += search_errors(file_name)
     else:
-        errors = search_errors(' '.join(arguments.string))
+        errors = search_errors(' '.join(arguments.string), is_file=False)
     if errors:
         for error in errors:
             error.write()
         sys.exit(1)
 
 
-def search_errors(file_name='string'):
+def search_errors(file_name='string', is_file=True):
     checkers = [check_error0101, check_error0201, check_error0202,
                 check_error0203, check_error0301, check_error0302,
                 check_error0401, check_error0501, check_error0601,
@@ -317,16 +356,30 @@ def search_errors(file_name='string'):
                 check_error0704, check_error0705, check_error0706,
                 check_error0707, check_error0801]
     errors = []
-    with open(file_name) as file:
-        line_number = 1
-        for line in file:
-            for checker in checkers:
-                result = checker(line)
-                for error in result:
-                    errors.append(Error(file_name,
-                                        (line_number, error[0]),
-                                        error[1]))
-            line_number += 1
+    if is_file:
+        lines = []
+        with open(file_name) as file:
+            line_number = 1
+            for line in file:
+                lines.append(line)
+                if line != '\n':
+                    for checker in checkers:
+                        result = checker(line)
+                        for error in result:
+                            errors.append(Error(file_name,
+                                                (line_number, error[0]),
+                                                error[1]))
+                line_number += 1
+        checker = Error09(file_name, lines)
+        errors += checker.errors
+    else:
+        line = file_name
+        for checker in checkers:
+            result = checker(line)
+            for error in result:
+                errors.append(Error(file_name,
+                                    (1, error[0]),
+                                    error[1]))
     return errors
 
 

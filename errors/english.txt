@@ -15,4 +15,7 @@ E0705-Unexpected spaces around keyword / parameter equals
 E0706-Missing whitespace around operator
 E0707-Multiple spaces around operator
 E0801-Use def
-E0901-
+E0901-No new line in end of file
+E0902-Separate the class with two empty lines
+E0903-Separate top level function with two empty lines
+E0904-Separate function within a class or a function with one empty line
