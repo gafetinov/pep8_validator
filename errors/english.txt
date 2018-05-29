@@ -7,19 +7,12 @@ E0302-Multiple statements on one line
 E0401-Inline comment should start with "# "
 E0501-Do not compare logical types through operators "==", "!=", "is", "is not"
 E0601-Symbols in line over than 79
-E0701-Whitespace after "("
-E0702-Whitespace before "("
-E0703-Whitespace before ")"
-E0704-Whitespace after "["
-E0705-Whitespace before "["
-E0706-Whitespace before "]"
-E0707-Whitespace after "{"
-E0708-Whitespace before "{"
-E0709-Whitespace before "}"
-E0710-Whitespace before ","
-E0711-Whitespace before ":"
-E0712-Whitespace before ";"
-E0713-Unexpected spaces around keyword / parameter equals
-E0714-Missing whitespace around operator
-E0715-Multiple spaces around operator
+E0701-Whitespace after opened brackets
+E0702-Whitespace before opened brackets
+E0703-Whitespace before closed brackets
+E0704-Whitespace before punctuation mark
+E0705-Unexpected spaces around keyword / parameter equals
+E0706-Missing whitespace around operator
+E0707-Multiple spaces around operator
 E0801-Use def
+E0901-

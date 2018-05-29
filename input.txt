@@ -1,8 +1,7 @@
 def main():
-    errors = []
-    parser = argparse.ArgumentParser(description='Check code for PEP8.')
-    parser.add_argument('--files', nargs='*',
-                        help='Check transferred files to PEP8')
+     errors = []
+    parser = argparse.ArgumentParser(description ='Check code for PEP8.')
+    parser.add_argument('--files', nargs ='*', help= 'Check transferred files to PEP8')
     parser.add_argument('string', nargs='*')
     arguments = parser.parse_args()
     if arguments.files:
@@ -10,7 +9,7 @@ def main():
             with open(file_name) as file:
                 line_number = 1
                 for line in file:
-                    errors += search_errors(line, file_name, line_number)
+                    errors    +=search_errors(line, file_name, line_number)
                     line_number += 1
     else:
         errors = search_errors(' '.join(arguments.string), 'string', 1)
