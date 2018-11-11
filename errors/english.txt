@@ -1,4 +1,5 @@
 E0101-Indentation is not a multiple of four
+E0102-Continuation line over-indented for visual indent
 E0201-Wrong name of class
 E0202-Wrong name of function
 E0203-Wrong name of import
