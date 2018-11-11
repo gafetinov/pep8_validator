@@ -288,7 +288,7 @@ class Validator:
                         line[index+1] != '=' and \
                         not self.is_in_quotes(line, index) and \
                         not self.is_for_parameter(line, index) and \
-                        len(self.bracket_stack) == 0:
+                        len(self.bracket_stack) > 0:
                     if line[index-1] != ' ':
                         self.errors_found.append(Error((self.line_number,
                                                         index-1),
