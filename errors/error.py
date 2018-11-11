@@ -1,14 +1,13 @@
 class Error:
-    def __init__(self, file_name, coordintes, err_code):
-        self.file_name = file_name
+    def __init__(self, coordintes, err_code):
         self.coordinates = coordintes
         self.err_code = err_code
         self.language = 'english'
         self.languages = ('english')
 
     def write(self):
-        print('On {0} {1}: {2}'.
-              format(self.file_name, self.coordinates, self.description()))
+        print('{0}: {1}'.
+              format(self.coordinates, self.description()))
 
     def get_code(self):
         return self.err_code
