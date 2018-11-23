@@ -1,5 +1,5 @@
 E0101-Indentation is not a multiple of four
-E0102-Continuation line over-indented for visual indent
+E0102-Continuation line over indented for visual indent
 E0201-Wrong name of class
 E0202-Wrong name of function
 E0203-Wrong name of import
@@ -20,3 +20,4 @@ E0901-No new line in end of file
 E0902-Separate the class with two empty lines
 E0903-Separate top level function with two empty lines
 E0904-Separate function within a class or a function with one empty line
+E0905-Extra empty line in the end

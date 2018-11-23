@@ -1,5 +1,6 @@
 import sys
 import argparse
+import re
 from errors.error import Error
 
 BIN_OPERATORS1 = ('==', '=', '+=', '-=', '*=', '/=', '<=', '>=', '<', '>')
@@ -31,6 +32,7 @@ class Validator:
                          self.check_error0801]
         self.line_number = 1
         self.errors_found = []
+        self.bracket_stack = []
 
     def search_errors(self):
         if self.is_file:
@@ -43,6 +45,11 @@ class Validator:
             for checker in self.checkers:
                 checker(self.text)
 
+    def get_space_count(self, line):
+        for (i, ch) in enumerate(line):
+            if ch != ' ' and ch not in QUOTES:
+                return i
+
     def is_in_quotes(self, line, index):
         in_single = False
         in_double = False
@@ -54,6 +61,17 @@ class Validator:
                 in_double = not in_double
             if i == index:
                 return in_single or in_double
+
+    def is_in_quadratic_bracket(self, line, index):
+        in_bracket = False
+        for i in range(len(line)):
+            symbol = line[i]
+            if symbol == "[":
+                in_bracket = True
+            if symbol == ']':
+                in_bracket = False
+            if i == index:
+                return in_bracket
 
     def is_for_parameter(self, line, index):
         bracket_indicator = 0
@@ -76,8 +94,23 @@ class Validator:
         return indexes
 
     def check_error0101(self, line):
+        if len(self.bracket_stack) == 0:
+            return
         if not is_space_count_multiple_four(line):
             self.errors_found.append(Error((self.line_number, 1), 'E0101'))
+
+    def check_error0102(self, line):
+        if self.bracket_stack:
+            spaces = self.get_space_count(line)
+            if self.bracket_stack[-1] != spaces:
+                self.errors_found.append(Error((self.line_number, spaces),
+                                               'E0102'))
+        for i in range(len(line)):
+            symbol = line[i]
+            if symbol in OPENED_BRACKETS:
+                self.bracket_stack.append(i)
+            elif symbol in CLOSED_BRACKETS:
+                self.bracket_stack.pop()
 
     def check_error0201(self, line):
         words = line.split()
@@ -129,7 +162,9 @@ class Validator:
                 if mark == ',':
                     i = -1
                 if i != -1:
-                    if i + 1 < len(line.rstrip()):
+                    if not self.is_in_quotes(line, i) and \
+                        not self.is_in_quadratic_bracket(line, i) and \
+                            i + 1 < len(line.rstrip()):
                         self.errors_found.append(Error((self.line_number, i),
                                                        'E0302'))
 
@@ -137,7 +172,7 @@ class Validator:
         line = line.lstrip()
         i = line.find('#')
         if i != -1:
-            if line[i+1] != ' ':
+            if line[i+1] != ' ' and not self.is_in_quotes(line, i):
                 self.errors_found.append(Error((self.line_number, i),
                                                'E0401'))
 
@@ -148,8 +183,8 @@ class Validator:
             operators = ('==', '!=', 'is', 'isnot')
             if i != -1:
                 for operator in operators:
-                    if line_without_spaces[i-2:i] == operator or\
-                       line_without_spaces[i-5:i] == operator:
+                    if line_without_spaces[i-2:i] == operator or \
+                            line_without_spaces[i-5:i] == operator:
                         self.errors_found.append(Error((self.line_number, i),
                                                        'E0501'))
 
@@ -163,7 +198,7 @@ class Validator:
         for i in range(len(words)):
             if i+1 < len(words):
                 next_word = words[i+1]
-            if words[i][-1] in OPENED_BRACKETS and\
+            if words[i][-1] in OPENED_BRACKETS and \
                     i+1 < len(words) and next_word not in BIN_OPERATORS:
                 self.errors_found.append(Error((self.line_number, i+1),
                                                'E0701'))
@@ -172,10 +207,12 @@ class Validator:
         words = line.split()
         previous_word = ''
         for i in range(len(words)):
-            if words[i][0] in OPENED_BRACKETS and \
+            index = line.find(words[i])
+            if words[i][0] == OPENED_BRACKETS and \
+                    not self.is_in_quotes(line, index) and \
                     len(previous_word) > 0 and previous_word[-1] != ',' and \
                     previous_word not in BIN_OPERATORS:
-                self.errors_found.append(Error((self.line_number, i+1),
+                self.errors_found.append(Error((self.line_number, i),
                                                'E0702'))
             previous_word = words[i]
 
@@ -206,7 +243,7 @@ class Validator:
         indexes = self.get_all_occurrences('=', line)
         for index in indexes:
             if not self.is_in_quotes(line, index) and \
-                   self.is_for_parameter(line, index):
+                    self.is_for_parameter(line, index):
                 if line[index-1] == ' ':
                     i = 2
                     while line[index-i] == ' ':
@@ -222,29 +259,36 @@ class Validator:
                                                     index+i),
                                                    'E0705'))
 
+    # Missing whitespace around operator
     def check_error0706(self, line):
-        # Missing whitespace around operator
         for operator in BIN_OPERATORS2:
             indexes = self.get_all_occurrences(operator, line)
             for index in indexes:
-                if line[index] and not line[index-1].isalpha() and\
-                        not line[index+len(operator)].isalpha() and\
-                        line[index-1] not in ARITHMETIC_OPERATORS and\
+                if line[index] and not line[index-1].isalpha() and \
+                        not line[index+len(operator)].isalpha() and \
+                        line[index-1] not in ARITHMETIC_OPERATORS and \
                         not self.is_in_quotes(line, index):
-                    if line[index-1] != ' ':
+                    if line[index-1] == ')' or line[index-1] == '(':
                         self.errors_found.append(Error((self.line_number,
                                                         index-1),
                                                        'E0706'))
-                    if line[index+len(operator)] != ' ':
+                    if line[index+len(operator)] == ')' or \
+                            line[index+len(operator)] == ')':
                         self.errors_found.append(Error((self.line_number,
                                                         index+len(operator)),
                                                        'E0706'))
         for operator in BIN_OPERATORS1:
             indexes = self.get_all_occurrences(operator, line)
             for index in indexes:
-                if line[index-1] not in ARITHMETIC_OPERATORS and\
-                        not self.is_in_quotes(line, index) and\
-                        not self.is_for_parameter(line, index):
+                if line[index-1] not in ARITHMETIC_OPERATORS and \
+                        line[index-1] != '!' and \
+                        line[index-1] != '>' and \
+                        line[index-1] != '<' and \
+                        line[index-1] != '=' and \
+                        line[index+1] != '=' and \
+                        not self.is_in_quotes(line, index) and \
+                        not self.is_for_parameter(line, index) and \
+                        len(self.bracket_stack) > 0:
                     if line[index-1] != ' ':
                         self.errors_found.append(Error((self.line_number,
                                                         index-1),
@@ -256,10 +300,11 @@ class Validator:
                                                        'E0706'))
 
     def check_error0707(self, line):
+        line = line.lstrip()
         for operator in BIN_OPERATORS:
             indexes = self.get_all_occurrences(operator, line)
             for index in indexes:
-                if line[index-1] not in ARITHMETIC_OPERATORS and\
+                if line[index-1] not in ARITHMETIC_OPERATORS and \
                         not self.is_in_quotes(line, index):
                     if line[index-1] == ' ':
                         if line[index-2] == ' ':
@@ -267,7 +312,7 @@ class Validator:
                             while line[index-i] == ' ':
                                 i += 1
                             self.errors_found.append(Error((self.line_number,
-                                                            index-i+2),
+                                                            i),
                                                            'E0707'))
                     if line[index+len(operator)] == ' ':
                         if line[index+len(operator)+1] == ' ':
@@ -281,7 +326,9 @@ class Validator:
     def check_error0801(self, line):
         indexes = self.get_all_occurrences(' lambda ', line)
         for i in indexes:
-            self.errors_found.append(Error((self.line_number, i), 'E0801'))
+            if not self.is_in_quotes(line, i):
+                self.errors_found.append(Error((self.line_number, i),
+                                               'E0801'))
 
     def check_error0901(self):
         if self.text[-1] != "":
@@ -379,8 +426,8 @@ def main():
             print('On {}:\n'.format(file))
             for error in errors[file]:
                 error.write()
+            print('\n\n')
         sys.exit(1)
-
 
 def is_space_count_multiple_four(line):
     for (i, ch) in enumerate(line):
@@ -394,3 +441,4 @@ def is_cap_word(word):
 
 if __name__ == '__main__':
     main()
+
