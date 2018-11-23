@@ -69,7 +69,7 @@ class TestSearch():
         assert checker.errors_found[0].err_code == 'E0601'
 
     def test_spaces_around_brackets(self):
-        code_end = ['01', '01', '03', '04', '06', '07', '09', '03']
+        code_end = ['01', '01', '03', '01', '03', '03']
         checker = Validator('spam( ham[ 1 ], { eggs=2 } )')
         checker.search_errors()
         for i in range(len(code_end)):
@@ -114,7 +114,6 @@ class TestSearch():
             assert checker.errors_found[0].err_code == 'E0501'
 
     def test_non_using_lambda(self):
-        string = 'f = lambda x: 2*x'
         checker = Validator('f = lambda x: 2*x')
         checker.search_errors()
         assert checker.errors_found[0].err_code == 'E0801'

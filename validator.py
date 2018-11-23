@@ -57,6 +57,7 @@ class Validator:
                 checker(self.text)
         for checker in self.global_checkers:
             checker()
+        self.errors_found.sort(key=lambda x: x.coordinates)
 
     def get_space_count(self, line):
         for (i, ch) in enumerate(line):
@@ -212,46 +213,57 @@ class Validator:
     def check_error0701(self, line):
         words = line.split()
         next_word = ''
+        symbol_index = len(line)-len(line.lstrip())
         for i in range(len(words)):
             if i + 1 < len(words):
                 next_word = words[i + 1]
             if words[i][-1] in OPENED_BRACKETS and \
                     i + 1 < len(words) and next_word not in BIN_OPERATORS:
-                self.errors_found.append(Error((self.line_number, i + 1),
+                self.errors_found.append(Error((self.line_number,
+                                                symbol_index+len(words[i])+1),
                                                'E0701'))
+            symbol_index += len(words[i])+1
 
     def check_error0702(self, line):
         words = line.split()
         previous_word = ''
+        symbol_index = len(line)-len(line.lstrip())
         for i in range(len(words)):
             index = line.find(words[i])
             if words[i][0] == OPENED_BRACKETS and \
                     not self.is_in_quotes(line, index) and \
                     len(previous_word) > 0 and previous_word[-1] != ',' and \
                     previous_word not in BIN_OPERATORS:
-                self.errors_found.append(Error((self.line_number, i),
+                self.errors_found.append(Error((self.line_number,
+                                                symbol_index+len(words[i])+1),
                                                'E0702'))
             previous_word = words[i]
+            symbol_index += len(words[i])+1
 
     def check_error0703(self, line):
         words = line.split()
         previous_word = ''
+        symbol_index = len(line)-len(line.lstrip())
         for i in range(len(words)):
             if words[i][0] in CLOSED_BRACKETS and \
                     len(previous_word) > 0 and previous_word[-1] != ',' and \
                     previous_word not in BIN_OPERATORS:
-                self.errors_found.append(Error((self.line_number, i + 1),
+                self.errors_found.append(Error((self.line_number,
+                                                symbol_index+len(words[i])+1),
                                                'E0703'))
             previous_word = words[i]
+            symbol_index += len(words[i])+1
 
     def check_error0704(self, line):
         words = line.split()
         previous_word = ''
+        symbol_index = len(line) - len(line.lstrip())
         for i in range(len(words)):
             if words[i][0] in PUNCTUATION_MARKS and \
                     len(previous_word) > 0 and previous_word[-1] != ',' and \
                     previous_word not in BIN_OPERATORS:
-                self.errors_found.append(Error((self.line_number, i + 1),
+                self.errors_found.append(Error((self.line_number,
+                                                symbol_index+len(words[i])+1),
                                                'E0704'))
             previous_word = words[i]
 
