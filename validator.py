@@ -1,5 +1,8 @@
 import sys
 import argparse
+import re
+import configparser
+import errors.error as err
 from errors.error import Error
 from collections import deque
 
@@ -28,7 +31,9 @@ class Validator:
                                 self.check_error0701, self.check_error0702,
                                 self.check_error0703, self.check_error0704,
                                 self.check_error0705, self.check_error0706,
-                                self.check_error0707, self.check_error0801]
+                                self.check_error0707, self.check_error0801,
+                                self.check_error0903, self.check_error0904,
+                                self.check_error0906]
         self.global_checkers = [self.check_error0901, self.check_error0905]
         self.line_number = 1
         self.errors_found = []
@@ -46,12 +51,13 @@ class Validator:
                         self.previous_lines.append(line)
                         if len(self.previous_lines) > 3:
                             self.previous_lines.popleft()
-                            self.line_number += 1
+                        self.line_number += 1
             except FileNotFoundError:
                 print('No such file: "{}"'.format(self.text))
                 sys.exit(1)
             except Exception:
-                print('May be your code have some syntax errors')
+                print('May be your code in file {} have some syntax errors'
+                      .format(self.text))
         else:
             for checker in self.inline_checkers:
                 checker(self.text)
@@ -83,6 +89,17 @@ class Validator:
             if symbol == "[":
                 in_bracket = True
             if symbol == ']':
+                in_bracket = False
+            if i == index:
+                return in_bracket
+
+    def is_in_bracket(self, line, index):
+        in_bracket = False
+        for i in range(len(line)):
+            symbol = line[i]
+            if symbol == "(":
+                in_bracket = True
+            if symbol == ')':
                 in_bracket = False
             if i == index:
                 return in_bracket
@@ -120,8 +137,10 @@ class Validator:
                 spaces -= 1
             index = -1
             if self.bracket_stack[-1] != spaces-1:
-                self.errors_found.append(Error((self.line_number, spaces),
-                                               'E0102'))
+                if spaces-1 == line[:re.search('\S', line).start()]\
+                        .count(' ')+4:
+                    self.errors_found.append(Error((self.line_number, spaces),
+                                                   'E0102'))
         for i in range(len(line)):
             symbol = line[i]
             if symbol in OPENED_BRACKETS and not self.is_in_quotes(line, i):
@@ -168,9 +187,10 @@ class Validator:
         words = line.split()
         if words and words[0] == 'import':
             if len(words) > 2:
-                self.errors_found.append(Error((self.line_number,
-                                                line.find(words[2])),
-                                               'E0301'))
+                if words[2] != 'as':
+                    self.errors_found.append(Error((self.line_number,
+                                                    line.find(words[2])),
+                                                   'E0301'))
 
     def check_error0302(self, line):
         i = line.find(' lambda ')
@@ -182,7 +202,8 @@ class Validator:
                 if i != -1:
                     if not self.is_in_quotes(line, i) and \
                             not self.is_in_quadratic_bracket(line, i) and \
-                            i + 1 < len(line.rstrip()):
+                            i + 1 < len(line.rstrip()) \
+                            and not self.is_in_bracket(line, i):
                         self.errors_found.append(Error((self.line_number, i),
                                                        'E0302'))
 
@@ -272,7 +293,9 @@ class Validator:
         indexes = self.get_all_occurrences('=', line)
         for index in indexes:
             if not self.is_in_quotes(line, index) and \
-                    self.is_for_parameter(line, index):
+                    self.is_for_parameter(line, index) and\
+                    line[index-1] != '=' and line[index-1] != '!' and\
+                    line[index+1] != '=':
                 if line[index - 1] == ' ':
                     i = 2
                     while line[index - i] == ' ':
@@ -297,7 +320,8 @@ class Validator:
                         not line[index + len(operator)].isalpha() and \
                         line[index - 1] not in ARITHMETIC_OPERATORS and \
                         not self.is_in_quotes(line, index):
-                    if line[index - 1] == ')' or line[index - 1] == '(':
+                    if (line[index - 1] == ')' or line[index - 1] == '(')\
+                            and line[index:index+3] != 'not':
                         self.errors_found.append(Error((self.line_number,
                                                         index - 1),
                                                        'E0706'))
@@ -372,73 +396,44 @@ class Validator:
                 self.errors_found.append(Error((self.line_number,
                                                 line.find('class')), 'E0902'))
 
-    def check_error0903(self):
-        pass
+    def check_error0903(self, line):
+        if (line.startswith('def') or line.startswith('class'))\
+                and self.line_number > 2:
+            if not (self.previous_lines[-1].isspace() and
+                    self.previous_lines[-2].isspace()):
+                self.errors_found.append(Error((self.line_number, 1),
+                                               'E0903'))
+            elif self.line_number > 3 and self.previous_lines[-3].isspace():
+                self.errors_found.append(Error((self.line_number, 1),
+                                               'E0903'))
 
-    def check_error0904(self):
-        pass
+    def check_error0904(self, line):
+        if (line.lstrip().startswith('def') and self.line_number > 2 and
+                not self.previous_lines[-1].lstrip().startswith('class') and
+                not self.previous_lines[-1].lstrip().startswith('def') and
+                not self.previous_lines[-1].lstrip().startswith('#') and
+                re.match('\s', line)):
+            if not self.previous_lines[-1].isspace() or\
+                    self.previous_lines[-2].isspace():
+                self.errors_found.append(Error((self.line_number,
+                                                str.find('def', line)+1),
+                                               'E0904'))
 
     def check_error0905(self):
         if self.is_file and self.previous_lines[-1] == '\n' and \
                 self.previous_lines[-2][-1] == '\n':
             self.errors_found.append(Error((self.line_number, 1), 'E0905'))
 
-
-class Error09:
-    def __init__(self, file_name, lines):
-        self.nesting = []
-        self.file_name = file_name
-        self.lines = lines
-        self.errors = self.check()
-
-    def check(self):
-        err = []
-        indent = 0
-        previous_indent = indent
-        for i in range(len(self.lines)):
-            line = self.lines[i]
-            words = line.split()
-            if words:
-                if words[0] == 'class':
-                    indent = line.find('class')
-                    if i > 2 and indent == previous_indent:
-                        if self.lines[i - 1] != '\n' or self.lines[i - 2] != \
-                                '\n':
-                            err.append(Error((i + 1, line.find('class')),
-                                             'E0902'))
-                        else:
-                            if self.lines[i - 3] == '\n':
-                                err.append(Error((i + 1, line.find('class')),
-                                                 'E0902'))
-                    self.nesting.append('class')
-                elif words[0] == 'def':
-                    indent = line.find('def')
-                    if i > 2:
-                        if indent == 0:
-                            if self.lines[i - 1] != '\n' or \
-                                    self.lines[i - 2] != '\n':
-                                err.append(Error((i + 1, line.find('def')),
-                                                 'E0903'))
-                            else:
-                                if self.lines[i - 3] == '\n':
-                                    err.append(Error((i + 1,
-                                                      line.find('def')),
-                                                     'E0903'))
-                        else:
-                            if indent <= previous_indent:
-                                if self.lines[i - 1] != '\n':
-                                    err.append(Error((i + 1,
-                                                      line.find('def')),
-                                                     'E0904'))
-                                elif self.lines[i - 2] == '\n':
-                                    err.append(Error((i + 1,
-                                                      line.find('def')),
-                                                     'E0904'))
-                    self.nesting.append('def')
-            previous_indent = indent
-        if self.lines[-1] != '\n':
-            err.append(Error((len(self.lines), len(self.lines[-1])), 'E0901'))
-        return err
+    def check_error0906(self, line):
+        if (re.match('\S', line.lstrip()) and self.line_number > 2 and
+                self.previous_lines[-1].isspace() and
+                self.previous_lines[-2].isspace()):
+            if re.match('\s', line):
+                self.errors_found.append(Error((self.line_number, 1),
+                                               'E0906'))
+            elif self.line_number > 3 and self.previous_lines[-3].isspace():
+                self.errors_found.append(Error((self.line_number, 1),
+                                               'E0906'))
 
 
 def main():
@@ -447,32 +442,52 @@ def main():
     parser.add_argument('--files', nargs='*',
                         help='Check transferred files to PEP8')
     parser.add_argument('string', nargs='*')
+    parser.add_argument('--language', nargs=1,
+                        help='You can choose language: english')
     arguments = parser.parse_args()
+
+    config = configparser.ConfigParser()
+    config.read('errors/settings.ini')
+    settings = config['Languages']
+    if arguments.language:
+        language = arguments.language[0]
+        if language in err.__LANGUAGES:
+            settings['Language'] = language
+        else:
+            print("I don't know this language: \"{}\"".format(language))
+            settings['Language'] = 'english'
+    else:
+        settings['Language'] = 'english'
+    with open('errors/settings.ini', 'w') as file:
+        config.write(file)
+
     if arguments.files:
         for file_name in arguments.files:
             validator = Validator(file_name, is_file=True)
             try:
                 validator.search_errors()
             except Exception:
-                print('May be your code have some syntax errors')
+                print('May be your code in file "{}" have some syntax errors'
+                      .format(file_name))
             errors[file_name] = validator.errors_found
     else:
         validator = Validator(' '.join(arguments.string))
         try:
             validator.search_errors()
         except Exception:
-            print('May ve your code have some syntax errors')
+            print('May be your string "{}" have some syntax errors'
+                  .format(' '.join(arguments.string)))
         errors['string'] = validator.errors_found
     errors_is_found = False
     if errors:
         for file in errors:
-            print('On {}:'.format(file))
+            print('{}:'.format(file))
             if errors[file]:
                 errors_is_found = True
                 for error in errors[file]:
                     error.write()
             else:
-                print('Everything is OK')
+                print('OK')
             print('\n')
     if errors_is_found:
         sys.exit(1)

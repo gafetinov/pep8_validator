@@ -1,9 +1,16 @@
+import configparser
+
+
+__LANGUAGES = ('english', 'russian')
+
+
 class Error:
-    def __init__(self, coordintes, err_code):
-        self.coordinates = coordintes
+    def __init__(self, coordinates, err_code):
+        self.settings = configparser.ConfigParser()
+        self.settings.read('errors/settings.ini')
+        self.coordinates = coordinates
         self.err_code = err_code
-        self.language = 'english'
-        self.languages = ('english')
+        self.language = self.settings['Languages']['Language']
 
     def write(self):
         print('{0}: {1}'.
@@ -13,7 +20,7 @@ class Error:
         return self.err_code
 
     def description(self):
-        with open('errors/{}.txt'.format(self.language)) as file:
+        with open('errors/languages/{}.txt'.format(self.language)) as file:
             for line in file:
                 if line.find(self.err_code) != -1:
                     dates = line.split('-')
@@ -21,7 +28,3 @@ class Error:
 
     def err_code(self):
         return self.err_code
-
-    def change_language(self, language):
-        if language in self.languages:
-            self.language = language
